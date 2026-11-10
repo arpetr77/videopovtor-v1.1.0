@@ -1,0 +1,251 @@
+/* Видеоповтор боя — стили. Тёмная тема, крупные кнопки, расчёт на одну руку и перчатки. */
+:root {
+  --bg: #0c0e11;
+  --panel: rgba(12, 14, 17, .86);
+  --card: #1a1e24;
+  --line: #2c323b;
+  --text: #f3f5f7;
+  --dim: #9aa3ae;
+  --go: #2fd06b;
+  --stop: #ff3b30;
+  --warn: #ffb020;
+  --accent: #4aa3ff;
+  --sat: env(safe-area-inset-top, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
+  overscroll-behavior: none;      /* без pull-to-refresh */
+  touch-action: manipulation;     /* без двойного тап-зума */
+  -webkit-text-size-adjust: 100%;
+}
+
+[hidden] { display: none !important; }
+
+button, .chip, .keyrow button {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+button {
+  min-width: 64px;
+  min-height: 64px;
+  padding: 0 16px;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  background: var(--card);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.1;
+  cursor: pointer;
+}
+button:active { filter: brightness(1.3); }
+button:disabled { opacity: .4; }
+button.primary { background: #20507f; border-color: var(--accent); }
+button.active { background: #20507f; border-color: var(--accent); }
+
+.mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+.dim, .hint { color: var(--dim); }
+.hint { font-size: 14px; margin: 4px 0 10px; }
+.hint.warn { color: var(--warn); }
+.spacer { flex: 1; }
+
+.screen { position: fixed; inset: 0; }
+.overlay { background: var(--bg); z-index: 10; display: flex; flex-direction: column; }
+
+/* ---------- Экран записи ---------- */
+#preview {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+#rec-frame {
+  position: absolute; inset: 0;
+  border: 0 solid var(--stop);
+  pointer-events: none;
+}
+body.is-recording #rec-frame { border-width: 10px; }
+
+.topbar {
+  position: absolute; top: 0; left: 0; right: 0;
+  display: flex; align-items: center; gap: 8px;
+  padding: calc(8px + var(--sat)) calc(10px + var(--sar)) 8px calc(10px + var(--sal));
+  pointer-events: none;
+}
+.chip {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--panel);
+  font-weight: 700;
+  font-size: 17px;
+  white-space: nowrap;
+}
+.chip.small { font-size: 14px; font-weight: 600; padding: 6px 10px; }
+.chip.state.ready { color: var(--go); }
+.chip.state.rec { background: var(--stop); color: #fff; }
+.chip.state.busy { color: var(--warn); }
+.chip.low { color: var(--warn); }
+
+.alert {
+  position: absolute; left: calc(12px + var(--sal)); right: calc(12px + var(--sar));
+  top: calc(64px + var(--sat));
+  display: flex; align-items: center; gap: 12px; justify-content: space-between;
+  padding: 12px 14px;
+  background: #5a1410; border: 2px solid var(--stop); border-radius: 14px;
+  font-weight: 600;
+}
+.alert.soft { background: #4a3608; border-color: var(--warn); }
+
+.controls {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px calc(12px + var(--sar)) calc(12px + var(--sab)) calc(12px + var(--sal));
+  background: linear-gradient(to top, rgba(0,0,0,.65), rgba(0,0,0,0));
+}
+.controls .side { height: 72px; background: var(--panel); }
+.controls .replay {
+  position: relative; height: 72px; min-width: 120px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  overflow: hidden; background: var(--panel);
+}
+.controls .replay img {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; opacity: .45;
+}
+.controls .replay span { position: relative; text-shadow: 0 1px 4px #000; }
+.fight {
+  flex: 1; height: 96px;
+  font-size: 36px; font-weight: 800; letter-spacing: .02em;
+  border-width: 0;
+}
+.fight.go { background: var(--go); color: #04210f; }
+.fight.stop { background: var(--stop); color: #fff; }
+.fight:disabled { background: #444; color: #aaa; opacity: 1; }
+
+/* ---------- Заголовки страниц ---------- */
+.page-head {
+  display: flex; align-items: center; gap: 12px;
+  padding: calc(10px + var(--sat)) calc(14px + var(--sar)) 10px calc(14px + var(--sal));
+  border-bottom: 1px solid var(--line);
+}
+.page-head h1 { margin: 0; font-size: 24px; }
+
+/* ---------- Клипы ---------- */
+.clips {
+  list-style: none; margin: 0; padding: 10px calc(14px + var(--sar)) calc(20px + var(--sab)) calc(14px + var(--sal));
+  overflow-y: auto; flex: 1;
+}
+.clip {
+  display: grid; grid-template-columns: 128px 1fr; gap: 12px;
+  margin-bottom: 12px; padding: 10px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+}
+.clip.pinned { border-color: var(--warn); }
+.clip .thumb {
+  width: 128px; height: 72px; border-radius: 8px; object-fit: cover; background: #000;
+}
+.clip .meta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.clip .meta b { font-size: 18px; }
+.badge { padding: 2px 8px; border-radius: 6px; background: #5a3a08; color: var(--warn); font-size: 13px; font-weight: 700; }
+.clip .acts { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; }
+.clip .acts button { min-height: 52px; font-size: 16px; flex: 1; }
+.empty { padding: 24px; color: var(--dim); text-align: center; }
+
+/* ---------- Настройки ---------- */
+.settings {
+  overflow-y: auto; flex: 1;
+  padding: 10px calc(14px + var(--sar)) calc(30px + var(--sab)) calc(14px + var(--sal));
+}
+fieldset { border: 1px solid var(--line); border-radius: 14px; margin: 0 0 14px; padding: 8px 14px 6px; }
+legend { padding: 0 6px; color: var(--dim); font-weight: 700; }
+label { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; }
+label.check { justify-content: flex-start; }
+select, input[type=text], input[type=number] {
+  min-height: 48px; min-width: 150px; max-width: 55%;
+  padding: 0 10px; border-radius: 10px;
+  border: 2px solid var(--line); background: var(--card); color: var(--text);
+  font: inherit;
+}
+input[type=checkbox] { width: 28px; height: 28px; }
+.keyrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; }
+.keyrow button { min-height: 52px; }
+.voice-log ol { margin: 4px 0 8px; padding-left: 22px; color: var(--dim); }
+
+/* ---------- Повтор ---------- */
+.replay-screen { background: #000; }
+#player-wrap { position: absolute; inset: 0; background: #000; }
+#player { width: 100%; height: 100%; object-fit: contain; background: #000; }
+.panel { position: absolute; left: 0; right: 0; background: var(--panel); }
+.rp-top {
+  top: 0; display: flex; align-items: center; gap: 8px;
+  padding: calc(8px + var(--sat)) calc(10px + var(--sar)) 8px calc(10px + var(--sal));
+}
+.rp-title { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rp-top button { min-height: 56px; font-size: 16px; }
+.rp-bottom { bottom: 0; padding: 8px calc(12px + var(--sar)) calc(10px + var(--sab)) calc(12px + var(--sal)); }
+.seek { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.seek input[type=range] { flex: 1; height: 44px; accent-color: var(--accent); }
+.row { display: flex; gap: 8px; margin-bottom: 8px; }
+.row button { flex: 1; min-height: 64px; padding: 0 6px; font-size: 17px; }
+.row:last-child { margin-bottom: 0; }
+/* Режим «чистый экран»: только видео */
+.replay-screen.clean .panel { display: none; }
+
+/* ---------- Уведомления и ошибки ---------- */
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(130px + var(--sab)); z-index: 50;
+  max-width: 90vw; padding: 12px 18px;
+  background: #23282f; border: 2px solid var(--line); border-radius: 12px;
+  font-weight: 600; text-align: center;
+}
+.toast[data-level="warn"] { border-color: var(--warn); }
+.toast[data-level="error"] { border-color: var(--stop); background: #4a1410; }
+
+.fatal { z-index: 100; padding: calc(30px + var(--sat)) 24px 24px; justify-content: flex-start; }
+.fatal h1 { font-size: 24px; margin: 0 0 12px; }
+.fatal p { font-size: 18px; max-width: 34em; }
+
+/* ---------- Портрет: кнопка «БОЙ» на отдельной строке ---------- */
+@media (orientation: portrait) {
+  .controls { flex-wrap: wrap; }
+  .fight { order: -1; flex: 1 1 100%; }
+  .controls .side, .controls .replay { flex: 1; }
+  .clip { grid-template-columns: 96px 1fr; }
+  .clip .thumb { width: 96px; height: 54px; }
+  .row button { font-size: 15px; }
+  .rp-top { flex-wrap: wrap; }
+  .toast { bottom: calc(210px + var(--sab)); }
+}
+
+/* Низкие экраны (ландшафт телефона) */
+@media (max-height: 460px) {
+  .fight { height: 76px; font-size: 30px; }
+  .controls .side, .controls .replay { height: 64px; }
+  .row button, button { min-height: 56px; }
+  .rp-bottom .seek { margin-bottom: 4px; }
+}
+
+/* ---------- Внешний экран ---------- */
+#ext-chip { pointer-events: auto; cursor: pointer; }
+.remote-note { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px; font-size: 20px; font-weight: 600; color: var(--dim); pointer-events: none; }
+#ext-dialog { z-index: 30; overflow-y: auto; }
+#ext-dialog textarea { width: 100%; box-sizing: border-box; background: #000; color: var(--fg, #eee); border: 1px solid var(--line); border-radius: 10px; padding: 8px; font: 12px ui-monospace, Menlo, monospace; }
+#ext-dialog .xd-row { display: flex; gap: 8px; margin: 8px 0; }
+#ext-dialog .xd-row button { flex: 1; }
+#ext-dialog pre { white-space: pre-wrap; }

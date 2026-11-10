@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Экран повтора</title>
+<style>
+html,body{margin:0;height:100%;background:#000;color:#eee;font:18px system-ui,sans-serif}
+#setup{max-width:720px;margin:0 auto;padding:24px}
+textarea{width:100%;height:110px;background:#111;color:#eee;border:1px solid #444;font:12px monospace}
+button{font-size:18px;padding:10px 18px;margin:6px 6px 6px 0}
+video{position:fixed;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+#idle{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:5vw;color:#888}
+#unlock{position:fixed;inset:0;z-index:9;display:flex;align-items:center;justify-content:center;background:#000c}
+#bar{position:fixed;top:8px;right:8px;z-index:5;opacity:.5}
+#diag{position:fixed;left:8px;bottom:8px;margin:0;font:12px monospace;color:#8f8}
+[hidden]{display:none!important}
+</style></head><body>
+<div id="setup">
+  <h2>Экран повтора</h2>
+  <p>1. Нажмите «Подключить» и скопируйте код.</p>
+  <button id="start">Подключить</button>
+  <div id="step2" hidden>
+    <textarea id="offer" readonly></textarea><button id="copy">Копировать код</button>
+    <p>2. Вставьте код в приложение на телефоне, скопируйте код-ответ и вставьте сюда:</p>
+    <textarea id="answer"></textarea><button id="apply">Применить ответ</button>
+  </div>
+  <p id="msg"></p>
+</div>
+<video id="v" playsinline muted hidden></video>
+<div id="idle" hidden>Ожидание повтора</div>
+<div id="bar" hidden><button id="fs">На весь экран</button></div>
+<div id="unlock" hidden><button id="unl">Нажмите, чтобы разрешить воспроизведение</button></div>
+<pre id="diag" hidden></pre>
+<script type="module">
+import { Transport } from './js/external/transport.js';
+const $ = id => document.getElementById(id), v = $('v');
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {}); // офлайн-работа страницы
+const clips = {}, byTid = {}; let tr, test = null, shown = null, fps = 30, lastMedia = null, target = null; // target — кадр, к которому уже перемотали, но он ещё не показан
+
+// Фактически показанный кадр (где поддерживается)
+if ('requestVideoFrameCallback' in v) { const f = (n, md) => { lastMedia = md.mediaTime; target = null; v.requestVideoFrameCallback(f); }; v.requestVideoFrameCallback(f); }
+
+$('start').onclick = async () => { try { tr = new Transport(); wire(tr); $('offer').value = await tr.createOffer(); $('step2').hidden = false; $('msg').textContent = ''; } catch (e) { $('msg').textContent = e.message; } };
+$('copy').onclick = () => navigator.clipboard?.writeText($('offer').value);
+$('apply').onclick = async () => { try { await tr.acceptAnswer($('answer').value.trim()); $('msg').textContent = 'Соединяемся…'; } catch (e) { $('msg').textContent = e.message; } };
+$('fs').onclick = () => document.documentElement.requestFullscreen?.();
+$('unl').onclick = () => { $('unlock').hidden = true; v.play(); };
+document.addEventListener('keydown', e => { if (e.key === 'd') $('diag').hidden = !$('diag').hidden; });
+setInterval(async () => { if (!$('diag').hidden && tr) $('diag').textContent = JSON.stringify(await tr.stats(), null, 1); }, 1000);
+// Состояние на телефон ~4 раза в секунду: ноутбук — источник истины по времени
+setInterval(() => { if (shown && tr) tr.sendControl({ t: 'state', clipId: shown, time: v.currentTime, mediaTime: lastMedia, paused: v.paused, rate: v.playbackRate, loop: v.loop, muted: v.muted, ended: v.ended }); }, 250);
+
+function wire(tr) {
+  tr.addEventListener('open', () => { $('setup').hidden = true; $('idle').hidden = false; $('bar').hidden = false; navigator.wakeLock?.request('screen').catch(() => {}); tr.sendControl({ t: 'hello', v: 1 }); });
+  tr.addEventListener('lost', () => { shown = null; v.pause(); v.hidden = true; $('idle').hidden = true; $('bar').hidden = true; $('setup').hidden = false; $('step2').hidden = true; $('msg').textContent = 'Соединение потеряно. Нажмите «Подключить», чтобы подключиться заново (полученные клипы сохранены).'; });
+  tr.addEventListener('binary', e => {
+    const tid = new DataView(e.detail).getUint32(0), data = e.detail.slice(4);
+    if (tid === 0) { // тест связи
+      if (test && (test.got += data.byteLength) >= test.size) { tr.sendControl({ t: 'testDone', ms: Math.round(performance.now() - test.t0) }); test = null; }
+      return;
+    }
+    const c = byTid[tid]; if (!c || c.url) return;
+    c.chunks.push(data); c.bytes += data.byteLength;
+    if (c.bytes - c.acked >= 1048576) { c.acked = c.bytes; tr.sendControl({ t: 'ack', clipId: c.id, bytes: c.bytes }); }
+    if (c.bytes >= c.size) { // клип получен целиком (проверка по размеру)
+      c.url = URL.createObjectURL(new Blob(c.chunks, { type: c.meta.mimeType || 'video/mp4' })); c.chunks = null;
+      tr.sendControl({ t: 'ready', clipId: c.id });
+    }
+  });
+  tr.addEventListener('msg', async e => {
+    const m = e.detail;
+    switch (m.t) {
+      case 'hello': if (m.v !== 1) $('msg').textContent = 'Несовместимая версия протокола'; break;
+      case 'testStart': test = { size: m.size, got: 0, t0: performance.now() }; break;
+      case 'prepare': {
+        let c = clips[m.clipId];
+        if (!c) c = clips[m.clipId] = { id: m.clipId, size: m.size, meta: m.meta || {}, chunks: [], bytes: 0, acked: 0 };
+        c.tid = m.tid; byTid[m.tid] = c;
+        const old = Object.keys(clips).filter(i => i !== m.clipId && i !== shown);
+        if (Object.keys(clips).length > 3 && old.length) { URL.revokeObjectURL(clips[old[0]].url); delete clips[old[0]]; } // храним до 3 клипов
+        tr.sendControl({ t: 'prepared', clipId: m.clipId, tid: m.tid, have: c.bytes, ready: !!c.url });
+        break; }
+      case 'cancel': break;
+      case 'show': { // ОТДЕЛЬНАЯ команда запуска повтора
+        const c = clips[m.clipId]; if (!c?.url) return;
+        fps = c.meta.fps || 30; shown = c.id; lastMedia = null; target = null; v.src = c.url; v.muted = true; v.playbackRate = 1; v.loop = false;
+        v.hidden = false; $('idle').hidden = true;
+        v.play().catch(() => { $('unlock').hidden = false; });
+        break; }
+      case 'hide': v.pause(); v.hidden = true; $('idle').hidden = false; shown = null; break;
+      case 'play': v.play().catch(() => { $('unlock').hidden = false; }); break;
+      case 'pause': v.pause(); break;
+      case 'seek': target = null; v.currentTime = m.time; break;      // абсолютное время, ошибки не накапливаются
+      case 'rate': v.playbackRate = m.value; break;
+      case 'loop': v.loop = !!m.value; break;
+      case 'mute': v.muted = !!m.value; break;
+      case 'step': { // шаг на 1/fps от фактически показанного кадра; точность ограничена браузером
+        v.pause(); const dur = (clips[shown]?.meta.durationMs || 0) / 1000 || v.duration || 1e9;
+        target = Math.max(0, Math.min(dur, (target ?? lastMedia ?? v.currentTime) + (m.dir > 0 ? 1 : -1) / fps));
+        v.currentTime = target; break; }
+    }
+  });
+}
+</script></body></html>
