@@ -29,7 +29,7 @@ video{position:fixed;inset:0;width:100%;height:100%;object-fit:contain;backgroun
 <div id="unlock" hidden><button id="unl">Нажмите, чтобы разрешить воспроизведение</button></div>
 <pre id="diag" hidden></pre>
 <script type="module">
-import { Transport } from './js/external/transport.js';
+import { Transport } from './transport.js';
 const $ = id => document.getElementById(id), v = $('v');
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {}); // офлайн-работа страницы
 const clips = {}, byTid = {}; let tr, test = null, shown = null, fps = 30, lastMedia = null, target = null; // target — кадр, к которому уже перемотали, но он ещё не показан

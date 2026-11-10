@@ -1,32 +1,32 @@
 // Service Worker: кэширует все файлы приложения (cache-first), чтобы оно работало без интернета.
 // При выходе новой версии ИЗМЕНИТЕ CACHE_VERSION — старый кэш удалится, новый заполнится.
 
-const CACHE_VERSION = 'videopovtor-v1.1.0';
+const CACHE_VERSION = 'videopovtor-v1.1.1';
 
 const ASSETS = [
   './',
   'index.html',
   'styles.css',
   'manifest.webmanifest',
-  'js/main.js',
-  'js/camera.js',
-  'js/recorder.js',
-  'js/commands.js',
-  'js/store.js',
-  'js/player.js',
-  'js/outputs.js',
-  'js/settings.js',
-  'js/ui.js',
+  'main.js',
+  'camera.js',
+  'recorder.js',
+  'commands.js',
+  'store.js',
+  'player.js',
+  'outputs.js',
+  'settings.js',
+  'ui.js',
   'display.html',
-  'js/external/protocol.js',
-  'js/external/signaling.js',
-  'js/external/transport.js',
-  'js/external/phone-session.js',
-  'js/external/external-output.js',
-  'js/external/dialog.js',
-  'icons/icon-192.png',
-  'icons/icon-512.png',
-  'icons/apple-touch-icon.png',
+  'protocol.js',
+  'signaling.js',
+  'transport.js',
+  'phone-session.js',
+  'external-output.js',
+  'dialog.js',
+  'icon-192.png',
+  'icon-512.png',
+  'apple-touch-icon.png',
 ];
 
 self.addEventListener('install', (event) => {

@@ -10,7 +10,7 @@ import * as store from './store.js';
 import * as ui from './ui.js';
 import { $, $$ } from './ui.js';
 
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.1.1';
 
 // ---------------------------------------------------------------------------
 // Проверка окружения
@@ -392,8 +392,8 @@ async function syncExternal() {
   const want = !!getSettings().extEnabled;
   if (want && !ext) {
     try {
-      const mod = await import('./external/external-output.js');
-      const dlg = await import('./external/dialog.js');
+      const mod = await import('./external-output.js');
+      const dlg = await import('./dialog.js');
       ext = mod.createExternal({
         local: outputs.local,
         getRecorderState: () => recorder.state,          // только чтение

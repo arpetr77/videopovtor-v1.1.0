@@ -1,7 +1,7 @@
 // Интеграция внешнего экрана: адаптер вывода (OutputAdapter) + менеджер соединения.
 // Этот модуль подгружается динамически, только когда в настройках включён «Внешний экран».
 // Рекордер не затрагивается: из него читается только состояние (getRecorderState).
-import { OutputAdapter } from '../outputs.js';
+import { OutputAdapter } from './outputs.js';
 import { createPhoneSession } from './phone-session.js';
 
 // Режимы показа: 'local' — только на телефоне, 'remote' — на внешнем экране (телефон — пульт),
